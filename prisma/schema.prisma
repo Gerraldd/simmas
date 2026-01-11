@@ -1,0 +1,178 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+//
+// ENUMS
+//
+enum Role {
+  admin
+  siswa
+  guru
+  dudi
+}
+
+enum DudiStatus {
+  aktif
+  nonaktif
+  pending
+}
+
+enum MagangStatus {
+  pending
+  diterima
+  ditolak
+  berlangsung
+  selesai
+  dibatalkan
+}
+
+enum LogbookStatus {
+  pending
+  disetujui
+  ditolak
+}
+
+//
+// USERS
+//
+model users {
+  id                Int       @id @default(autoincrement())
+  name              String    @db.VarChar(255)
+  email             String    @unique @db.VarChar(255)
+  email_verified_at DateTime?
+  password          String    @db.VarChar(255)
+  role              Role
+  created_at        DateTime  @default(now())
+  updated_at        DateTime  @updatedAt
+
+  siswa siswa?
+  guru  guru?
+}
+
+//
+// SISWA
+//
+model siswa {
+  id         Int      @id @default(autoincrement())
+  user_id    Int      @unique
+  nama       String?  @db.VarChar(255)
+  nis        String?  @unique @db.VarChar(255)
+  kelas      String?  @db.VarChar(50)
+  jurusan    String?  @db.VarChar(100)
+  alamat     String?
+  telepon    String?  @db.VarChar(20)
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  users  users    @relation(fields: [user_id], references: [id])
+  magang magang[]
+}
+
+//
+// GURU
+//
+model guru {
+  id         Int      @id @default(autoincrement())
+  user_id    Int      @unique
+  nip        String?  @unique @db.VarChar(50)
+  nama       String?  @db.VarChar(255)
+  alamat     String?
+  telepon    String?  @db.VarChar(20)
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  users  users    @relation(fields: [user_id], references: [id])
+  magang magang[]
+  dudi   dudi[]
+}
+
+//
+// DUDI
+//
+model dudi {
+  id                 Int        @id @default(autoincrement())
+  guru_id            Int
+  nama_perusahaan    String?    @db.VarChar(255)
+  tentang_perusahaan String?
+  alamat             String?
+  telepon            String?    @db.VarChar(20)
+  email              String?    @db.VarChar(255)
+  penanggung_jawab   String?    @db.VarChar(255)
+  kouta_magang       Int?       @default(0)
+  bidang_usaha       String?    @db.VarChar(255)
+  status             DudiStatus @default(pending)
+  created_at         DateTime   @default(now())
+  updated_at         DateTime   @updatedAt
+
+  magang magang[]
+  guru   guru     @relation(fields: [guru_id], references: [id])
+}
+
+//
+// MAGANG
+//
+model magang {
+  id              Int          @id @default(autoincrement())
+  siswa_id        Int
+  dudi_id         Int
+  guru_id         Int
+  status          MagangStatus @default(pending)
+  nilai_akhir     Decimal?     @db.Decimal(5, 2)
+  tanggal_mulai   DateTime?
+  tanggal_selesai DateTime?
+  created_at      DateTime     @default(now())
+  updated_at      DateTime     @updatedAt
+
+  siswa   siswa     @relation(fields: [siswa_id], references: [id])
+  dudi    dudi      @relation(fields: [dudi_id], references: [id])
+  guru    guru      @relation(fields: [guru_id], references: [id])
+  logbook logbook[]
+}
+
+//
+// LOGBOOK
+//
+model logbook {
+  id                Int           @id @default(autoincrement())
+  magang_id         Int
+  tanggal           DateTime
+  kegiatan          String
+  kendala           String?
+  file              String?       @db.VarChar(500)
+  status_verifikasi LogbookStatus @default(pending)
+  catatan_guru      String?
+  catatan_dudi      String?
+  created_at        DateTime      @default(now())
+  updated_at        DateTime      @updatedAt
+
+  magang magang @relation(fields: [magang_id], references: [id])
+}
+
+//
+// SCHOOL SETTINGS
+//
+model school_settings {
+  id             Int      @id @default(autoincrement())
+  logo_url       String?  @db.Text
+  nama_sekolah   String?  @db.VarChar(255)
+  alamat         String?
+  telepon        String?  @db.VarChar(20)
+  email          String?  @db.VarChar(255)
+  website        String?  @db.VarChar(255)
+  kepala_sekolah String?  @db.VarChar(255)
+  npsn           String?  @unique @db.VarChar(20)
+  created_at     DateTime @default(now())
+  updated_at     DateTime @updatedAt
+}
